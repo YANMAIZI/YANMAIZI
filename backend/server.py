@@ -277,7 +277,204 @@ async def get_analytics():
         logging.error(f"Error getting analytics: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при получении аналитики")
 
-# ================== SETTINGS ENDPOINTS ==================
+# ================== TRENDS ENDPOINTS ==================
+
+@api_router.post("/trends/monitor")
+async def start_trend_monitoring():
+    """Запуск мониторинга трендов"""
+    try:
+        # Создаем задачу мониторинга трендов
+        task = Task(
+            type=TaskType.TREND_MONITORING,
+            parameters={"sources": ["youtube", "google_trends", "rss_feeds"]}
+        )
+        
+        await tasks_collection.insert_one(task.dict())
+        
+        # Запускаем мониторинг в фоне (в продакшене будет через Celery)
+        import asyncio
+        asyncio.create_task(monitor_trends_background(task.id))
+        
+        return {
+            "success": True,
+            "task_id": task.id,
+            "message": "Мониторинг трендов запущен"
+        }
+    except Exception as e:
+        logging.error(f"Error starting trend monitoring: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при запуске мониторинга трендов")
+
+@api_router.get("/trends", response_model=List[Trend])
+async def get_trends(limit: int = 20):
+    """Получение списка найденных трендов"""
+    try:
+        trends = await trends_collection.find().sort("discovered_at", -1).limit(limit).to_list(limit)
+        return [Trend(**trend) for trend in trends]
+    except Exception as e:
+        logging.error(f"Error getting trends: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении трендов")
+
+@api_router.get("/trends/popular")
+async def get_popular_trends(limit: int = 10):
+    """Получение самых популярных трендов"""
+    try:
+        trends = await trends_collection.find().sort("popularity_score", -1).limit(limit).to_list(limit)
+        return [Trend(**trend) for trend in trends]
+    except Exception as e:
+        logging.error(f"Error getting popular trends: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении популярных трендов")
+
+@api_router.post("/trends/{trend_id}/create_content")
+async def create_content_from_trend(trend_id: str):
+    """Создание контента на основе тренда"""
+    try:
+        # Получаем тренд
+        trend = await trends_collection.find_one({"id": trend_id})
+        if not trend:
+            raise HTTPException(status_code=404, detail="Тренд не найден")
+        
+        # Создаем контент на основе тренда
+        content_title = f"Топ-5 способов использовать {trend['keyword']} для получения подарков"
+        
+        content = Content(
+            type=ContentType.VIDEO,
+            title=content_title,
+            topic=trend['keyword'],
+            description=f"Контент создан на основе тренда: {trend['title']}",
+            keywords=[trend['keyword']] + trend.get('hashtags', []),
+            target_platforms=[Platform.TIKTOK, Platform.YOUTUBE, Platform.TELEGRAM]
+        )
+        
+        await content_collection.insert_one(content.dict())
+        
+        # Создаем задачу генерации
+        generation_task = Task(
+            type=TaskType.CONTENT_GENERATION,
+            parameters={
+                "content_id": content.id,
+                "source_trend_id": trend_id,
+                "trend_data": trend
+            }
+        )
+        
+        await tasks_collection.insert_one(generation_task.dict())
+        
+        return {
+            "success": True,
+            "content_id": content.id,
+            "task_id": generation_task.id,
+            "message": f"Контент на основе тренда '{trend['keyword']}' создан"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error creating content from trend: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при создании контента из тренда")
+
+async def monitor_trends_background(task_id: str):
+    """Фоновая задача мониторинга трендов"""
+    try:
+        # Обновляем статус задачи
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {"status": TaskStatus.RUNNING, "progress": 10, "updated_at": datetime.utcnow()}}
+        )
+        
+        # Запускаем мониторинг
+        result = await run_trend_monitoring()
+        
+        if result['success']:
+            # Сохраняем найденные тренды в базу
+            trends_to_save = []
+            for trend_data in result['trends']:
+                trend = Trend(
+                    platform=Platform.TIKTOK,  # Основная платформа для трендов
+                    keyword=trend_data['keyword'],
+                    description=trend_data['title'],
+                    popularity_score=trend_data['score'],
+                    hashtags=trend_data['hashtags'],
+                    source_url="",  # Если есть URL
+                    source_data=trend_data,
+                    discovered_at=datetime.fromisoformat(trend_data['discovered_at'].replace('Z', '+00:00')) if 'T' in trend_data['discovered_at'] else datetime.utcnow()
+                )
+                trends_to_save.append(trend.dict())
+            
+            if trends_to_save:
+                await trends_collection.insert_many(trends_to_save)
+            
+            # Создаем задачи для популярных трендов
+            popular_trends = sorted(result['trends'], key=lambda x: x['score'], reverse=True)[:5]
+            content_tasks_created = 0
+            
+            for trend_data in popular_trends:
+                if trend_data['score'] > 0.6:  # Только высокорейтинговые тренды
+                    # Создаем контент на основе тренда
+                    content_title = f"Как использовать {trend_data['keyword']} для получения подарков в Telegram"
+                    
+                    content = Content(
+                        type=ContentType.VIDEO,
+                        title=content_title,
+                        topic=trend_data['keyword'],
+                        description=f"Автоматически создано на основе тренда: {trend_data['title']}",
+                        keywords=[trend_data['keyword']] + trend_data['hashtags'],
+                        target_platforms=[Platform.TIKTOK, Platform.YOUTUBE, Platform.TELEGRAM]
+                    )
+                    
+                    await content_collection.insert_one(content.dict())
+                    
+                    # Создаем задачу генерации
+                    generation_task = Task(
+                        type=TaskType.CONTENT_GENERATION,
+                        parameters={
+                            "content_id": content.id,
+                            "auto_generated": True,
+                            "source_trend": trend_data
+                        }
+                    )
+                    
+                    await tasks_collection.insert_one(generation_task.dict())
+                    content_tasks_created += 1
+            
+            # Обновляем статус задачи - завершена
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.COMPLETED,
+                    "progress": 100,
+                    "completed_at": datetime.utcnow(),
+                    "result": {
+                        "trends_found": result['trends_found'],
+                        "content_tasks_created": content_tasks_created,
+                        "content_ideas": result['content_ideas']
+                    }
+                }}
+            )
+            
+            logger.info(f"Мониторинг трендов завершен: найдено {result['trends_found']} трендов, создано {content_tasks_created} задач контента")
+            
+        else:
+            # Ошибка при мониторинге
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.FAILED,
+                    "error_message": result.get('error', 'Неизвестная ошибка'),
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+    except Exception as e:
+        logger.error(f"Ошибка в фоновой задаче мониторинга трендов: {e}")
+        
+        # Обновляем статус задачи - ошибка
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {
+                "status": TaskStatus.FAILED,
+                "error_message": str(e),
+                "updated_at": datetime.utcnow()
+            }}
+        )
 
 @api_router.get("/settings", response_model=SystemSettings)
 async def get_settings():
