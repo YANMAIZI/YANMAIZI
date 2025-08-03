@@ -148,6 +148,12 @@ def trends_monitoring():
     """Мониторинг трендов"""
     return render_template('trends.html')
 
+# TTS Генерация  
+@app.route('/tts')
+def tts_generation():
+    """TTS генерация аудио"""
+    return render_template('tts.html')
+
 # API endpoints для AJAX запросов
 @app.route('/api/tasks/create', methods=['POST'])
 def create_task():
