@@ -154,6 +154,12 @@ def tts_generation():
     """TTS генерация аудио"""
     return render_template('tts.html')
 
+# Генерация Видео
+@app.route('/video')
+def video_generation():
+    """Генерация видео контента"""
+    return render_template('video.html')
+
 # API endpoints для AJAX запросов
 @app.route('/api/tasks/create', methods=['POST'])
 def create_task():
