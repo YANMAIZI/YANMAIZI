@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Задачи - EKOSYSTEMA_FULL{% endblock %}
+
+{% block header %}Управление задачами{% endblock %}
+
+{% block content %}
+<!-- Статистика задач -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Активные</p>
+                <p class="text-2xl font-bold text-blue-600" id="activeTasks">{{ tasks|selectattr('status', 'equalto', 'running')|list|length }}</p>
+            </div>
+            <i class="fas fa-play-circle text-blue-600 text-2xl"></i>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">В очереди</p>
+                <p class="text-2xl font-bold text-yellow-600" id="pendingTasks">{{ tasks|selectattr('status', 'equalto', 'pending')|list|length }}</p>
+            </div>
+            <i class="fas fa-clock text-yellow-600 text-2xl"></i>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Завершенные</p>
+                <p class="text-2xl font-bold text-green-600" id="completedTasks">0</p>
+            </div>
+            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Ошибки</p>
+                <p class="text-2xl font-bold text-red-600" id="failedTasks">0</p>
+            </div>
+            <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Создать задачу</h3>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button onclick="createTask('trend_monitoring')" class="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                <i class="fas fa-chart-line text-purple-600 text-2xl mb-2"></i>
+                <span class="text-sm font-medium">Мониторинг трендов</span>
+            </button>
+            
+            <button onclick="createTask('content_generation')" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                <i class="fas fa-magic text-blue-600 text-2xl mb-2"></i>
+                <span class="text-sm font-medium">Генерация контента</span>
+            </button>
+            
+            <button onclick="createTask('publishing')" class="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                <i class="fas fa-share-alt text-green-600 text-2xl mb-2"></i>
+                <span class="text-sm font-medium">Публикация</span>
+            </button>
+            
+            <button onclick="createTask('analytics')" class="flex flex-col items-center p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
+                <i class="fas fa-chart-bar text-orange-600 text-2xl mb-2"></i>
+                <span class="text-sm font-medium">Сбор аналитики</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Список задач -->
+<div class="bg-white rounded-lg shadow">
+    <div class="p-6 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Все задачи</h3>
+        <div class="flex items-center space-x-2">
+            <button onclick="refreshTasks()" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
+                <i class="fas fa-sync-alt mr-1"></i>
+                Обновить
+            </button>
+            <select id="statusFilter" onchange="filterTasks()" class="px-3 py-2 text-sm border border-gray-300 rounded-lg">
+                <option value="">Все статусы</option>
+                <option value="pending">В очереди</option>
+                <option value="running">Выполняется</option>
+                <option value="completed">Завершенные</option>
+                <option value="failed">Ошибки</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Прогресс</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Создано</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Завершение</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                </tr>
+            </thead>
+            <tbody id="tasksTableBody" class="divide-y divide-gray-200">
+                {% for task in tasks %}
+                <tr data-task-id="{{ task.id }}" data-status="{{ task.status }}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ task.id }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <div class="flex items-center">
+                            <i class="fas fa-{% if task.type == 'trend_monitoring' %}chart-line{% elif task.type == 'content_generation' %}magic{% elif task.type == 'publishing' %}share-alt{% else %}tasks{% endif %} mr-2"></i>
+                            {{ task.type }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 rounded-full text-xs 
+                        {% if task.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif task.status == 'running' %}bg-blue-100 text-blue-800
+                        {% elif task.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ task.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ task.progress }}%"></div>
+                            </div>
+                            <span>{{ task.progress }}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {{ task.created_at.strftime('%d.%m %H:%M') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {% if task.estimated_completion %}
+                            {{ task.estimated_completion.strftime('%d.%m %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <div class="flex items-center space-x-2">
+                            {% if task.status == 'running' %}
+                                <button onclick="pauseTask('{{ task.id }}')" class="text-yellow-600 hover:text-yellow-800">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                            {% elif task.status == 'pending' %}
+                                <button onclick="startTask('{{ task.id }}')" class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            {% endif %}
+                            
+                            <button onclick="viewTaskDetails('{{ task.id }}')" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            
+                            <button onclick="deleteTask('{{ task.id }}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно деталей задачи -->
+<div id="taskDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Детали задачи</h3>
+            <button onclick="closeTaskDetails()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="taskDetailsContent">
+            <!-- Содержимое загружается динамически -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function createTask(type) {
+        const result = await apiRequest('/api/tasks/create', 'POST', { type: type });
+        
+        if (result && result.success) {
+            showNotification(`Задача ${type} создана: ${result.task_id}`, 'success');
+            setTimeout(refreshTasks, 1000);
+        } else {
+            showNotification('Ошибка при создании задачи', 'error');
+        }
+    }
+    
+    async function refreshTasks() {
+        // Обновление списка задач
+        showNotification('Обновление списка задач...', 'info');
+        // Здесь будет реальное обновление через API
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+    
+    function filterTasks() {
+        const filter = document.getElementById('statusFilter').value;
+        const rows = document.querySelectorAll('#tasksTableBody tr');
+        
+        rows.forEach(row => {
+            const status = row.dataset.status;
+            if (!filter || status === filter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+    
+    async function pauseTask(taskId) {
+        showNotification(`Приостановка задачи ${taskId}...`, 'info');
+        // Здесь будет API вызов для приостановки
+    }
+    
+    async function startTask(taskId) {
+        showNotification(`Запуск задачи ${taskId}...`, 'success');
+        // Здесь будет API вызов для запуска
+    }
+    
+    async function deleteTask(taskId) {
+        if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
+            showNotification(`Удаление задачи ${taskId}...`, 'info');
+            // Здесь будет API вызов для удаления
+        }
+    }
+    
+    async function viewTaskDetails(taskId) {
+        try {
+            const result = await apiRequest(`/api/tasks/${taskId}/status`);
+            
+            if (result) {
+                const content = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">ID задачи</label>
+                                <p class="text-sm text-gray-900">${result.task_id}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Статус</label>
+                                <p class="text-sm text-gray-900">${result.status}</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Прогресс</label>
+                            <div class="flex items-center mt-1">
+                                <div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: ${result.progress}%"></div>
+                                </div>
+                                <span class="text-sm">${result.progress}%</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Сообщение</label>
+                            <p class="text-sm text-gray-900">${result.message}</p>
+                        </div>
+                        
+                        <div class="pt-4 border-t">
+                            <h4 class="font-medium mb-2">Логи выполнения</h4>
+                            <div class="bg-gray-50 rounded p-3 text-sm font-mono">
+                                <p>Задача создана: ${new Date().toLocaleString()}</p>
+                                <p>Статус: ${result.status}</p>
+                                <p>Прогресс: ${result.progress}%</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('taskDetailsContent').innerHTML = content;
+                document.getElementById('taskDetailsModal').classList.remove('hidden');
+            }
+        } catch (error) {
+            showNotification('Ошибка при загрузке деталей задачи', 'error');
+        }
+    }
+    
+    function closeTaskDetails() {
+        document.getElementById('taskDetailsModal').classList.add('hidden');
+    }
+    
+    // Автообновление задач каждые 30 секунд
+    setInterval(() => {
+        // Обновляем только статусы без перезагрузки страницы
+        updateTaskStatuses();
+    }, 30000);
+    
+    async function updateTaskStatuses() {
+        const rows = document.querySelectorAll('#tasksTableBody tr');
+        rows.forEach(async (row) => {
+            const taskId = row.dataset.taskId;
+            try {
+                const result = await apiRequest(`/api/tasks/${taskId}/status`);
+                if (result) {
+                    // Обновляем статус и прогресс в строке
+                    const statusCell = row.querySelector('td:nth-child(3) span');
+                    const progressBar = row.querySelector('td:nth-child(4) .bg-blue-600');
+                    const progressText = row.querySelector('td:nth-child(4) span');
+                    
+                    if (statusCell) statusCell.textContent = result.status;
+                    if (progressBar) progressBar.style.width = result.progress + '%';
+                    if (progressText) progressText.textContent = result.progress + '%';
+                }
+            } catch (error) {
+                console.error(`Error updating task ${taskId}:`, error);
+            }
+        });
+    }
+</script>
+{% endblock %}
