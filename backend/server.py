@@ -755,6 +755,289 @@ async def process_content_tts_generation(task_id: str, content_id: str, tts_data
             }}
         )
 
+# ================== VIDEO ENDPOINTS ==================
+
+@api_router.get("/video/info")
+async def get_video_system_info():
+    """Получение информации о системе генерации видео"""
+    try:
+        info = await get_video_info()
+        return {
+            "success": True,
+            "data": info
+        }
+    except Exception as e:
+        logging.error(f"Error getting video info: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении информации о видео системе")
+
+@api_router.post("/video/generate")
+async def generate_video_endpoint(request_data: dict):
+    """Генерация видео"""
+    try:
+        text = request_data.get("text", "")
+        video_type = request_data.get("video_type", "animated_text")
+        style = request_data.get("style", "modern")
+        duration = request_data.get("duration", 30)
+        resolution_str = request_data.get("resolution", "1080x1920")
+        audio_path = request_data.get("audio_path")
+        
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="Текст не может быть пустым")
+        
+        # Парсим разрешение
+        try:
+            width, height = map(int, resolution_str.split('x'))
+            resolution = (width, height)
+        except:
+            resolution = (1080, 1920)  # По умолчанию
+        
+        # Создаём задачу видео генерации
+        task = Task(
+            type=TaskType.VIDEO_GENERATION,
+            parameters={
+                "text": text,
+                "video_type": video_type,
+                "style": style,
+                "duration": duration,
+                "resolution": resolution,
+                "audio_path": audio_path
+            }
+        )
+        
+        await tasks_collection.insert_one(task.dict())
+        
+        # Запускаем видео генерацию в фоне
+        import asyncio
+        asyncio.create_task(process_video_generation(task.id, request_data))
+        
+        return {
+            "success": True,
+            "task_id": task.id,
+            "message": "Генерация видео запущена"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error starting video generation: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при запуске генерации видео")
+
+async def process_video_generation(task_id: str, request_data: dict):
+    """Фоновая обработка генерации видео"""
+    try:
+        # Обновляем статус задачи
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {"status": TaskStatus.RUNNING, "progress": 10, "updated_at": datetime.utcnow()}}
+        )
+        
+        # Получаем параметры
+        text = request_data.get("text", "")
+        video_type = request_data.get("video_type", "animated_text")
+        style = request_data.get("style", "modern")
+        duration = request_data.get("duration", 30)
+        resolution_str = request_data.get("resolution", "1080x1920")
+        audio_path = request_data.get("audio_path")
+        
+        # Парсим разрешение
+        try:
+            width, height = map(int, resolution_str.split('x'))
+            resolution = (width, height)
+        except:
+            resolution = (1080, 1920)
+        
+        # Генерируем видео
+        result = await generate_video(
+            text=text,
+            video_type=video_type,
+            style=style,
+            duration=duration,
+            resolution=resolution,
+            audio_path=audio_path
+        )
+        
+        if result.success:
+            # Обновляем задачу - успешно завершена
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.COMPLETED,
+                    "progress": 100,
+                    "completed_at": datetime.utcnow(),
+                    "result": {
+                        "video_path": result.video_path,
+                        "file_size": result.file_size,
+                        "duration": result.duration,
+                        "resolution": result.resolution,
+                        "generation_time": result.generation_time,
+                        "metadata": result.metadata
+                    }
+                }}
+            )
+            
+            logger.info(f"Видео успешно создано: {result.video_path}")
+        else:
+            # Обновляем задачу - ошибка
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.FAILED,
+                    "error_message": result.error,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            logger.error(f"Ошибка генерации видео: {result.error}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка в фоновой задаче генерации видео: {e}")
+        
+        # Обновляем статус задачи - ошибка
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {
+                "status": TaskStatus.FAILED,
+                "error_message": str(e),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
+@api_router.post("/content/{content_id}/generate_video")
+async def generate_content_video(content_id: str, video_params: dict = None):
+    """Генерация видео для существующего контента"""
+    try:
+        # Получаем контент
+        content = await content_collection.find_one({"id": content_id})
+        if not content:
+            raise HTTPException(status_code=404, detail="Контент не найден")
+        
+        # Получаем текст для видео (используем скрипт, описание или заголовок)
+        text_for_video = content.get("script") or content.get("description") or content.get("title", "")
+        
+        if not text_for_video.strip():
+            raise HTTPException(status_code=400, detail="У контента нет текста для генерации видео")
+        
+        # Параметры видео
+        if not video_params:
+            video_params = {}
+        
+        video_data = {
+            "text": text_for_video,
+            "video_type": video_params.get("video_type", "animated_text"),
+            "style": video_params.get("style", "modern"),
+            "duration": video_params.get("duration", 30),
+            "resolution": video_params.get("resolution", "1080x1920"),
+            "audio_path": content.get("audio_path")  # Используем аудио из контента
+        }
+        
+        # Создаём задачу видео генерации
+        task = Task(
+            type=TaskType.VIDEO_GENERATION,
+            parameters=dict(video_data, content_id=content_id)
+        )
+        
+        await tasks_collection.insert_one(task.dict())
+        
+        # Запускаем генерацию в фоне
+        import asyncio
+        asyncio.create_task(process_content_video_generation(task.id, content_id, video_data))
+        
+        return {
+            "success": True,
+            "task_id": task.id,
+            "content_id": content_id,
+            "message": "Генерация видео для контента запущена"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error generating video for content: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при генерации видео для контента")
+
+async def process_content_video_generation(task_id: str, content_id: str, video_data: dict):
+    """Фоновая обработка генерации видео для контента"""
+    try:
+        # Обновляем статус задачи
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {"status": TaskStatus.RUNNING, "progress": 20, "updated_at": datetime.utcnow()}}
+        )
+        
+        # Парсим разрешение
+        resolution_str = video_data.get("resolution", "1080x1920")
+        try:
+            width, height = map(int, resolution_str.split('x'))
+            resolution = (width, height)
+        except:
+            resolution = (1080, 1920)
+        
+        # Генерируем видео
+        result = await generate_video(
+            text=video_data["text"],
+            video_type=video_data.get("video_type", "animated_text"),
+            style=video_data.get("style", "modern"),
+            duration=video_data.get("duration", 30),
+            resolution=resolution,
+            audio_path=video_data.get("audio_path")
+        )
+        
+        if result.success:
+            # Обновляем контент с путем к видеофайлу
+            await content_collection.update_one(
+                {"id": content_id},
+                {"$set": {
+                    "video_path": result.video_path,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            # Обновляем задачу - успешно завершена
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.COMPLETED,
+                    "progress": 100,
+                    "completed_at": datetime.utcnow(),
+                    "result": {
+                        "content_id": content_id,
+                        "video_path": result.video_path,
+                        "file_size": result.file_size,
+                        "duration": result.duration,
+                        "resolution": result.resolution,
+                        "generation_time": result.generation_time,
+                        "metadata": result.metadata
+                    }
+                }}
+            )
+            
+            logger.info(f"Видео для контента {content_id} успешно создано: {result.video_path}")
+        else:
+            # Обновляем задачу - ошибка
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.FAILED,
+                    "error_message": result.error,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            logger.error(f"Ошибка генерации видео для контента {content_id}: {result.error}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка в фоновой задаче генерации видео для контента: {e}")
+        
+        # Обновляем статус задачи - ошибка
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {
+                "status": TaskStatus.FAILED,
+                "error_message": str(e),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
 # Include the router in the main app
 app.include_router(api_router)
 
