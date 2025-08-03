@@ -58,6 +58,16 @@
                     Тренды
                 </a>
                 
+                <a href="{{ url_for('tts_generation') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'tts_generation' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-volume-up mr-3"></i>
+                    TTS Аудио
+                </a>
+                
+                <a href="{{ url_for('video_generation') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'video_generation' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-video mr-3"></i>
+                    Генерация видео
+                </a>
+                
                 <a href="{{ url_for('analytics') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'analytics' %}bg-blue-700{% endif %}">
                     <i class="fas fa-chart-bar mr-3"></i>
                     Аналитика
