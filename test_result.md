@@ -101,3 +101,59 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Разработка локального приложения EKOSYSTEMA_FULL для автоматического создания и публикации контента.
+  Система должна включать:
+  1. Сбор идей и генерация контента (мониторинг трендов, LLM анализ)
+  2. Автоматическая генерация видео (TTS, визуал, музыка)
+  3. Публикация контента через API (TikTok, YouTube, Instagram, Telegram)
+  4. Продвижение и кросспостинг
+  5. Партнёрские ссылки и CPA
+  6. Реклама и монетизация
+  7. Локальная панель управления (Flask dashboard)
+  
+  Технические требования: Python, Flask панель, локальная генерация видео через ffmpeg,
+  работа с Telegram через python-telegram-bot, без облаков, 100% локально и бесплатно.
+
+backend:
+  - task: "Базовая FastAPI структура"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Базовая FastAPI структура готова, MongoDB подключена, API роутер настроен"
+
+frontend:
+  - task: "Базовая React структура"
+    implemented: true
+    working: true
+    file: "frontend/src/App.js"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Базовая React структура готова, Tailwind настроен, API связь работает"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus: []
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Проект инициализирован. Базовая структура FastAPI + React + MongoDB готова и работает. Готов к планированию и реализации системы EKOSYSTEMA_FULL."
