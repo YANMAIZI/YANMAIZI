@@ -262,6 +262,18 @@ frontend:
         agent: "main"
         comment: "Создан красивый веб-интерфейс для TTS генерации с настройками движка, голоса, языка, скорости. Отслеживание задач в реальном времени."
 
+  - task: "Video Dashboard интерфейс"
+    implemented: true
+    working: false
+    file: "backend/templates/video.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Создан полнофункциональный веб-интерфейс для генерации видео с поддержкой всех параметров: тип видео, стиль, разрешение, длительность, интеграция с аудио. Отслеживание статуса в реальном времени, статистика, список последних видео. Требует тестирования."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
