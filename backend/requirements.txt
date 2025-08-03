@@ -47,4 +47,5 @@ propcache>=0.2.0
 yarl>=1.17.0
 pyttsx3>=2.99
 gTTS>=2.5.0
-click>=7.1
+moviepy>=1.0.3
+opencv-python>=4.5.0
