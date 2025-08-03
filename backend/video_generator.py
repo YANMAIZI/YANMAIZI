@@ -20,7 +20,7 @@ import json
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import cv2
 import numpy as np
-from moviepy.editor import (
+from moviepy import (
     VideoFileClip, ImageSequenceClip, CompositeVideoClip, 
     concatenate_videoclips, AudioFileClip, TextClip, ColorClip,
     ImageClip, concatenate_audioclips
