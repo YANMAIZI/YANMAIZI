@@ -233,8 +233,8 @@ class VideoGenerator:
                     
                     # Создаем текстовый клип
                     text_clip = TextClip(
-                        sentence,
-                        fontsize=request.font_size,
+                        text=sentence,
+                        font_size=request.font_size,
                         color=request.text_color,
                         size=request.resolution,
                         method='caption'
