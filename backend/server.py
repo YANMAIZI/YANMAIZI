@@ -23,6 +23,9 @@ from trend_monitor import run_trend_monitoring, TrendData
 # Импорт TTS модуля
 from tts_module import get_tts_generator, TTSRequest, TTSEngine, TTSVoice, generate_tts, get_tts_info
 
+# Импорт модуля генерации видео
+from video_generator import generate_video, get_video_info, VideoType, VideoStyle
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
