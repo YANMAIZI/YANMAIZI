@@ -165,6 +165,18 @@ backend:
         agent: "main"
         comment: "Flask dashboard запущен на порту 5000, все страницы функциональны: Dashboard, Content, Tasks, Publishing, Analytics, Settings"
 
+  - task: "TTS модуль и API endpoints"
+    implemented: true
+    working: true
+    file: "backend/tts_module.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "COMPREHENSIVE TTS TESTING COMPLETED! ✅ All 3 TTS API endpoints working: GET /api/tts/info (returns available engines, voices, languages), POST /api/tts/generate (creates TTS tasks), POST /api/content/{id}/generate_tts (generates TTS for content) ✅ Google TTS (gtts) engine fully functional with fast generation (1.06-1.15s, well under 5s requirement) ✅ Multiple languages tested: Russian and English ✅ Voice variations working: male and female voices ✅ Speed parameters functional: tested 0.8x, 1.0x, 1.2x speeds ✅ Audio files correctly created in /app/backend/generated_audio/ directory with proper file sizes (20KB-123KB) ✅ Task system integration perfect: tts_generation tasks created, tracked through pending->running->completed states ✅ Content integration working: audio_path correctly added to content records ✅ All specific test cases from review request passed: Russian short text, English short text, long Russian text about Telegram bots. Minor: pyttsx3 engine has voice selection error but gtts engine meets all requirements perfectly."
+
 frontend:
   - task: "Базовая React структура"
     implemented: true
