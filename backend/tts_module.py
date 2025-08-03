@@ -284,11 +284,14 @@ class TTSGenerator:
                 
                 # Конвертируем MP3 в WAV если необходимо
                 if output_path.suffix.lower() == '.wav':
-                    # Простое переименование (можно добавить конвертацию через ffmpeg позже)
+                    # Простое переименование для тестирования
                     final_path = output_path.with_suffix('.mp3')
-                    os.rename(temp_path, str(final_path))
+                    # Используем shutil для корректного перемещения файла
+                    import shutil
+                    shutil.move(temp_path, str(final_path))
                 else:
-                    os.rename(temp_path, str(output_path))
+                    import shutil
+                    shutil.move(temp_path, str(output_path))
                     final_path = output_path
                 
                 return True, str(final_path), None
