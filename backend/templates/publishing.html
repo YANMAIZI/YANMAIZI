@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{% block title %}Публикация - EKOSYSTEMA_FULL{% endblock %}
+
+{% block header %}Управление публикацией{% endblock %}
+
+{% block content %}
+<!-- Статус платформ -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    {% for platform in platforms %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-lg flex items-center justify-center
+                    {% if platform.name == 'TikTok' %}bg-black
+                    {% elif platform.name == 'YouTube' %}bg-red-500
+                    {% elif platform.name == 'Instagram' %}bg-gradient-to-br from-purple-500 to-pink-500
+                    {% elif platform.name == 'Telegram' %}bg-blue-500
+                    {% endif %}">
+                    <i class="fas fa-
+                        {% if platform.name == 'TikTok' %}music
+                        {% elif platform.name == 'YouTube' %}play
+                        {% elif platform.name == 'Instagram' %}camera
+                        {% elif platform.name == 'Telegram' %}paper-plane
+                        {% endif %} text-white"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="font-semibold text-gray-900">{{ platform.name }}</h3>
+                    <p class="text-sm text-gray-600">
+                        {% if platform.status == 'connected' %}
+                            <span class="text-green-600">Подключен</span>
+                        {% else %}
+                            <span class="text-red-600">Не подключен</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="h-3 w-3 rounded-full 
+                {% if platform.status == 'connected' %}bg-green-400{% else %}bg-red-400{% endif %}">
+            </div>
+        </div>
+        
+        {% if platform.status == 'connected' %}
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Последний пост:</span>
+                    <span class="text-gray-900">{{ platform.last_post or 'Нет' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Статус:</span>
+                    <span class="text-green-600">Активен</span>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex space-x-2">
+                <button onclick="testConnection('{{ platform.name.lower() }}')" 
+                        class="flex-1 px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                    Тест
+                </button>
+                <button onclick="disconnectPlatform('{{ platform.name.lower() }}')"
+                        class="flex-1 px-3 py-2 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">
+                    Отключить
+                </button>
+            </div>
+        {% else %}
+            <div class="mt-4">
+                <button onclick="connectPlatform('{{ platform.name.lower() }}')"
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Подключить
+                </button>
+            </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Быстрая публикация -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Быстрая публикация</h3>
+        </div>
+        <div class="p-6">
+            <form id="quickPublishForm">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Контент</label>
+                        <select id="contentSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Выберите контент для публикации</option>
+                            <option value="1">Видео: Лучшие Telegram боты</option>
+                            <option value="2">Пост: Как получить подарки</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Платформы</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="publish-platform" value="tiktok">
+                                <span class="ml-2 text-sm">TikTok</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="publish-platform" value="youtube">
+                                <span class="ml-2 text-sm">YouTube Shorts</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="publish-platform" value="instagram">
+                                <span class="ml-2 text-sm">Instagram Reels</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="publish-platform" value="telegram" checked>
+                                <span class="ml-2 text-sm">Telegram</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Время публикации</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="now">Сейчас</option>
+                            <option value="scheduled">Запланировать</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">
+                        <i class="fas fa-share-alt mr-2"></i>
+                        Опубликовать
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Статистика публикаций -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Статистика публикаций</h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 bg-black rounded flex items-center justify-center">
+                            <i class="fas fa-music text-white text-sm"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-sm">TikTok</p>
+                            <p class="text-xs text-gray-600">Сегодня: 2 поста</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-green-600">+145 просмотров</p>
+                        <p class="text-xs text-gray-600">+12 подписчиков</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 bg-red-500 rounded flex items-center justify-center">
+                            <i class="fas fa-play text-white text-sm"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-sm">YouTube</p>
+                            <p class="text-xs text-gray-600">Сегодня: 1 пост</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-green-600">+89 просмотров</p>
+                        <p class="text-xs text-gray-600">+5 подписчиков</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 bg-blue-500 rounded flex items-center justify-center">
+                            <i class="fas fa-paper-plane text-white text-sm"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-sm">Telegram</p>
+                            <p class="text-xs text-gray-600">Сегодня: 3 поста</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-green-600">+67 просмотров</p>
+                        <p class="text-xs text-gray-600">+8 подписчиков</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- История публикаций -->
+<div class="bg-white rounded-lg shadow">
+    <div class="p-6 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">История публикаций</h3>
+        <div class="flex items-center space-x-2">
+            <select class="px-3 py-2 text-sm border border-gray-300 rounded-lg">
+                <option value="">Все платформы</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
+                <option value="telegram">Telegram</option>
+            </select>
+            <button onclick="refreshPublications()" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Контент</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Платформа</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Опубликовано</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Просмотры</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                                <i class="fas fa-video text-gray-600"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">Лучшие Telegram боты</p>
+                                <p class="text-sm text-gray-500">Видео • 30 сек</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-6 w-6 bg-black rounded flex items-center justify-center">
+                                <i class="fas fa-music text-white text-xs"></i>
+                            </div>
+                            <span class="ml-2 text-sm">TikTok</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Опубликован</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        Сегодня 14:30
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        1,234
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <div class="flex items-center space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                            <button class="text-gray-600 hover:text-gray-800">
+                                <i class="fas fa-chart-bar"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                                <i class="fas fa-file-text text-gray-600"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">Как получить подарки</p>
+                                <p class="text-sm text-gray-500">Текст • Пост</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-6 w-6 bg-blue-500 rounded flex items-center justify-center">
+                                <i class="fas fa-paper-plane text-white text-xs"></i>
+                            </div>
+                            <span class="ml-2 text-sm">Telegram</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">В очереди</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        Запланировано на 18:00
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        -
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <div class="flex items-center space-x-2">
+                            <button class="text-green-600 hover:text-green-800">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно подключения платформы -->
+<div id="connectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold" id="modalTitle">Подключить платформу</h3>
+            <button onclick="closeConnectModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="modalContent">
+            <!-- Содержимое загружается динамически -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPlatform = '';
+    
+    function connectPlatform(platform) {
+        currentPlatform = platform;
+        const modal = document.getElementById('connectModal');
+        const title = document.getElementById('modalTitle');
+        const content = document.getElementById('modalContent');
+        
+        title.textContent = `Подключить ${platform.toUpperCase()}`;
+        
+        let formContent = '';
+        
+        if (platform === 'telegram') {
+            formContent = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bot Token</label>
+                        <input type="text" id="telegramToken" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                               placeholder="Введите токен бота">
+                        <p class="text-xs text-gray-500 mt-1">Получить токен можно у @BotFather</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Channel ID</label>
+                        <input type="text" id="channelId" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                               placeholder="@your_channel или -100123456789">
+                    </div>
+                </div>
+            `;
+        } else if (platform === 'youtube') {
+            formContent = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                        <input type="text" id="youtubeApiKey" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                               placeholder="Введите YouTube API ключ">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Channel ID</label>
+                        <input type="text" id="youtubeChannelId" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                               placeholder="ID канала YouTube">
+                    </div>
+                    <p class="text-xs text-gray-500">Получить API ключ можно в Google Cloud Console</p>
+                </div>
+            `;
+        } else {
+            formContent = `
+                <div class="text-center py-4">
+                    <i class="fas fa-construction text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600">Интеграция с ${platform.toUpperCase()} в разработке</p>
+                </div>
+            `;
+        }
+        
+        content.innerHTML = formContent + `
+            <div class="mt-6 flex space-x-3">
+                <button onclick="saveConnection()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                    Подключить
+                </button>
+                <button onclick="closeConnectModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400">
+                    Отмена
+                </button>
+            </div>
+        `;
+        
+        modal.classList.remove('hidden');
+    }
+    
+    function closeConnectModal() {
+        document.getElementById('connectModal').classList.add('hidden');
+    }
+    
+    async function saveConnection() {
+        // Здесь будет сохранение настроек подключения к API
+        showNotification(`Подключение к ${currentPlatform.toUpperCase()} настроено`, 'success');
+        closeConnectModal();
+        
+        // Обновляем статус платформы на странице
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+    
+    function disconnectPlatform(platform) {
+        if (confirm(`Отключить ${platform.toUpperCase()}?`)) {
+            showNotification(`${platform.toUpperCase()} отключен`, 'info');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+    }
+    
+    function testConnection(platform) {
+        showNotification(`Тестирование подключения к ${platform.toUpperCase()}...`, 'info');
+        
+        setTimeout(() => {
+            showNotification(`Подключение к ${platform.toUpperCase()} работает корректно`, 'success');
+        }, 2000);
+    }
+    
+    document.getElementById('quickPublishForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const contentId = document.getElementById('contentSelect').value;
+        const platforms = Array.from(document.querySelectorAll('.publish-platform:checked'))
+                               .map(cb => cb.value);
+        
+        if (!contentId) {
+            showNotification('Выберите контент для публикации', 'error');
+            return;
+        }
+        
+        if (platforms.length === 0) {
+            showNotification('Выберите хотя бы одну платформу', 'error');
+            return;
+        }
+        
+        showNotification(`Запущена публикация на платформы: ${platforms.join(', ')}`, 'success');
+        
+        // Здесь будет API вызов для публикации
+    });
+    
+    function refreshPublications() {
+        showNotification('Обновление списка публикаций...', 'info');
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+</script>
+{% endblock %}
