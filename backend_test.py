@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Backend Test Suite for EKOSYSTEMA_FULL TTS Module
-Tests TTS API endpoints, functionality, and integration with task system
+Backend Test Suite for EKOSYSTEMA_FULL Video Generation System
+Tests Video API endpoints, functionality, and integration with task system
 """
 
 import asyncio
