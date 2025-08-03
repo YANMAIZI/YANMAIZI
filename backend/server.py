@@ -20,6 +20,9 @@ from models import (
 # Импорт системы мониторинга трендов
 from trend_monitor import run_trend_monitoring, TrendData
 
+# Импорт TTS модуля
+from tts_module import get_tts_generator, TTSRequest, TTSEngine, TTSVoice, generate_tts, get_tts_info
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
