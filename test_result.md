@@ -281,7 +281,10 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Система генерации видео"
+    - "Video API endpoints" 
+    - "Video Dashboard интерфейс"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
