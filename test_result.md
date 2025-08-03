@@ -226,6 +226,30 @@ frontend:
         agent: "main"
         comment: "Реализованы API endpoints: GET /api/tts/info, POST /api/tts/generate, POST /api/content/{id}/generate_tts. Все endpoint протестированы и работают быстро (<2с генерация)."
 
+  - task: "Система генерации видео"
+    implemented: true
+    working: false
+    file: "backend/video_generator.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "ФАЗА 2B - ВИДЕО СИСТЕМА РЕАЛИЗОВАНА! ✅ Полнофункциональный модуль video_generator.py с поддержкой: анимированного текста, слайдшоу, шаблонов ✅ Интеграция с MoviePy, PIL, OpenCV ✅ Поддержка различных стилей (modern, classic, minimal, colorful, dark) ✅ Различные разрешения для разных платформ ✅ Интеграция с аудио (автоматическое добавление TTS) ✅ Асинхронная генерация через executor. Требует тестирования."
+
+  - task: "Video API endpoints"
+    implemented: true
+    working: false
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Добавлены API endpoints для видео генерации: GET /api/video/info, POST /api/video/generate, POST /api/content/{id}/generate_video. Интеграция с системой задач. Требует тестирования."
+
   - task: "TTS Dashboard интерфейс"
     implemented: true
     working: true
