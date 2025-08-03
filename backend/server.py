@@ -17,6 +17,9 @@ from models import (
     SystemSettings
 )
 
+# Импорт системы мониторинга трендов
+from trend_monitor import run_trend_monitoring, TrendData
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
