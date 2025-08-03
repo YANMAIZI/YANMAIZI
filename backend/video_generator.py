@@ -241,9 +241,6 @@ class VideoGenerator:
                         duration=sentence_duration
                     )
                     
-                    # Добавляем анимацию появления
-                    text_clip = text_clip.fadein(0.5).fadeout(0.5)
-                    
                     # Композиция
                     sentence_clip = CompositeVideoClip([background, text_clip])
                     clips.append(sentence_clip)
