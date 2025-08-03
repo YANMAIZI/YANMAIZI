@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block title %}Мониторинг трендов - EKOSYSTEMA_FULL{% endblock %}
+
+{% block header %}Мониторинг трендов{% endblock %}
+
+{% block content %}
+<!-- Статистика мониторинга -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Найдено трендов</p>
+                <p class="text-3xl font-bold text-blue-600" id="trendsFound">0</p>
+            </div>
+            <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-green-600">
+                <i class="fas fa-sync-alt"></i>
+                Обновлено: <span id="lastUpdate">никогда</span>
+            </span>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Популярные тренды</p>
+                <p class="text-3xl font-bold text-green-600" id="popularTrends">0</p>
+            </div>
+            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-fire text-green-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-gray-600">
+                Рейтинг > 0.6
+            </span>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Контент создан</p>
+                <p class="text-3xl font-bold text-purple-600" id="contentCreated">0</p>
+            </div>
+            <div class="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-magic text-purple-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-gray-600">
+                Автоматически
+            </span>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Статус мониторинга</p>
+                <p class="text-lg font-bold text-gray-900" id="monitoringStatus">Остановлен</p>
+            </div>
+            <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-robot text-gray-600 text-xl" id="statusIcon"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button onclick="toggleMonitoring()" id="toggleButton" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                Запустить
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Управление мониторингом -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Панель управления -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Управление мониторингом</h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Источники трендов</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="sourceYoutube" checked class="rounded">
+                            <span class="ml-2 text-sm">YouTube Trending</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="sourceGoogle" checked class="rounded">
+                            <span class="ml-2 text-sm">Google Trends</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="sourceRss" checked class="rounded">
+                            <span class="ml-2 text-sm">RSS ленты</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="sourceSocial" class="rounded" disabled>
+                            <span class="ml-2 text-sm text-gray-400">Социальные сети (в разработке)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ключевые слова</label>
+                    <textarea id="keywords" rows="3" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              placeholder="telegram, подарки, боты, криптовалюта">telegram, подарки, боты, криптовалюта, заработок, бесплатно</textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Минимальный рейтинг</label>
+                    <input type="range" id="minRating" min="0" max="1" step="0.1" value="0.3" 
+                           class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>0.0</span>
+                        <span id="minRatingValue">0.3</span>
+                        <span>1.0</span>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button onclick="startManualMonitoring()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-search mr-2"></i>
+                        Запустить мониторинг
+                    </button>
+                    
+                    <button onclick="clearTrends()" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700">
+                        <i class="fas fa-trash mr-2"></i>
+                        Очистить тренды
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Настройки автоматизации -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Автоматизация</h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Частота мониторинга</label>
+                    <select id="monitoringFrequency" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="hourly">Каждый час</option>
+                        <option value="3hours" selected>Каждые 3 часа</option>
+                        <option value="6hours">Каждые 6 часов</option>
+                        <option value="daily">Ежедневно</option>
+                        <option value="manual">Только вручную</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="autoCreateContent" checked class="rounded">
+                        <span class="ml-2 text-sm">Автоматически создавать контент из трендов</span>
+                    </label>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="autoPublish" class="rounded">
+                        <span class="ml-2 text-sm">Автоматически публиковать популярный контент</span>
+                    </label>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="notifyTrends" checked class="rounded">
+                        <span class="ml-2 text-sm">Уведомлять о новых популярных трендах</span>
+                    </label>
+                </div>
+                
+                <div class="pt-4 border-t">
+                    <h4 class="font-medium text-gray-900 mb-2">Лимиты автоматизации</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Макс. контента в день</label>
+                            <input type="number" value="5" min="1" max="20"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Мин. рейтинг для автосоздания</label>
+                            <input type="number" value="0.6" min="0" max="1" step="0.1"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список трендов -->
+<div class="bg-white rounded-lg shadow">
+    <div class="p-6 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Найденные тренды</h3>
+        <div class="flex items-center space-x-2">
+            <select id="trendsFilter" onchange="filterTrends()" class="px-3 py-2 text-sm border border-gray-300 rounded-lg">
+                <option value="">Все источники</option>
+                <option value="youtube">YouTube</option>
+                <option value="google_trends">Google Trends</option>
+                <option value="rss">RSS ленты</option>
+            </select>
+            <button onclick="refreshTrends()" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div id="trendsContainer" class="divide-y divide-gray-200">
+        <!-- Тренды будут загружены динамически -->
+        <div class="p-8 text-center text-gray-500">
+            <i class="fas fa-search text-4xl mb-4"></i>
+            <p>Запустите мониторинг для поиска трендов</p>
+        </div>
+    </div>
+</div>
+
+<!-- Прогресс мониторинга -->
+<div id="monitoringProgress" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 class="text-lg font-semibold mb-2">Мониторинг трендов</h3>
+            <p id="progressText" class="text-gray-600 mb-4">Поиск трендов в YouTube...</p>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p id="progressPercent" class="text-sm text-gray-500 mt-2">0%</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let monitoringActive = false;
+    let currentTaskId = null;
+    
+    // Обновление слайдера рейтинга
+    document.getElementById('minRating').addEventListener('input', function() {
+        document.getElementById('minRatingValue').textContent = this.value;
+    });
+    
+    // Запуск мониторинга
+    async function startManualMonitoring() {
+        showMonitoringProgress();
+        simulateProgress();
+        
+        try {
+            const response = await apiRequest('/api/trends/monitor', 'POST');
+            
+            if (response && response.success) {
+                currentTaskId = response.task_id;
+                showNotification('Мониторинг трендов запущен', 'success');
+                
+                // Мониторим прогресс задачи
+                monitorTaskProgress(currentTaskId);
+            } else {
+                hideMonitoringProgress();
+                showNotification('Ошибка при запуске мониторинга', 'error');
+            }
+        } catch (error) {
+            hideMonitoringProgress();
+            showNotification('Произошла ошибка', 'error');
+        }
+    }
+    
+    function showMonitoringProgress() {
+        document.getElementById('monitoringProgress').classList.remove('hidden');
+        updateMonitoringStatus(true);
+    }
+    
+    function hideMonitoringProgress() {
+        document.getElementById('monitoringProgress').classList.add('hidden');
+        updateMonitoringStatus(false);
+    }
+    
+    function simulateProgress() {
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
+        
+        const steps = [
+            { percent: 20, text: 'Поиск трендов в YouTube...' },
+            { percent: 40, text: 'Анализ Google Trends...' },
+            { percent: 60, text: 'Парсинг RSS лент...' },
+            { percent: 80, text: 'Анализ и фильтрация...' },
+            { percent: 100, text: 'Создание контента...' }
+        ];
+        
+        let currentStep = 0;
+        const interval = setInterval(() => {
+            if (currentStep < steps.length) {
+                const step = steps[currentStep];
+                progressBar.style.width = step.percent + '%';
+                progressPercent.textContent = step.percent + '%';
+                progressText.textContent = step.text;
+                currentStep++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 2000);
+    }
+    
+    async function monitorTaskProgress(taskId) {
+        const checkInterval = setInterval(async () => {
+            try {
+                const response = await apiRequest(`/api/tasks/${taskId}/status`);
+                
+                if (response) {
+                    if (response.status === 'completed') {
+                        clearInterval(checkInterval);
+                        hideMonitoringProgress();
+                        showNotification('Мониторинг трендов завершен!', 'success');
+                        refreshTrends();
+                        updateStats();
+                    } else if (response.status === 'failed') {
+                        clearInterval(checkInterval);
+                        hideMonitoringProgress();
+                        showNotification('Ошибка при мониторинге трендов', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking task progress:', error);
+            }
+        }, 3000);
+        
+        // Останавливаем проверку через 5 минут
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            hideMonitoringProgress();
+        }, 300000);
+    }
+    
+    function updateMonitoringStatus(active) {
+        monitoringActive = active;
+        const statusElement = document.getElementById('monitoringStatus');
+        const iconElement = document.getElementById('statusIcon');
+        const buttonElement = document.getElementById('toggleButton');
+        
+        if (active) {
+            statusElement.textContent = 'Активен';
+            statusElement.className = 'text-lg font-bold text-green-600';
+            iconElement.className = 'fas fa-robot text-green-600 text-xl';
+            buttonElement.textContent = 'Остановить';
+            buttonElement.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm';
+        } else {
+            statusElement.textContent = 'Остановлен';
+            statusElement.className = 'text-lg font-bold text-gray-900';
+            iconElement.className = 'fas fa-robot text-gray-600 text-xl';
+            buttonElement.textContent = 'Запустить';
+            buttonElement.className = 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm';
+        }
+    }
+    
+    function toggleMonitoring() {
+        if (monitoringActive) {
+            // Остановка мониторинга
+            updateMonitoringStatus(false);
+            showNotification('Мониторинг остановлен', 'info');
+        } else {
+            // Запуск мониторинга
+            startManualMonitoring();
+        }
+    }
+    
+    async function refreshTrends() {
+        try {
+            const response = await apiRequest('/api/trends?limit=50');
+            
+            if (response) {
+                displayTrends(response);
+                updateStats();
+            }
+        } catch (error) {
+            showNotification('Ошибка при загрузке трендов', 'error');
+        }
+    }
+    
+    function displayTrends(trends) {
+        const container = document.getElementById('trendsContainer');
+        
+        if (trends.length === 0) {
+            container.innerHTML = `
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-search text-4xl mb-4"></i>
+                    <p>Тренды не найдены. Запустите мониторинг.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = trends.map(trend => `
+            <div class="trend-item p-6" data-source="${trend.platform}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <h4 class="font-semibold text-gray-900 mr-3">${trend.keyword}</h4>
+                            <span class="px-2 py-1 bg-${getSourceColor(trend.platform)}-100 text-${getSourceColor(trend.platform)}-800 rounded-full text-xs">
+                                ${getSourceName(trend.platform)}
+                            </span>
+                            <div class="ml-2 flex items-center">
+                                <i class="fas fa-fire text-orange-500 text-sm mr-1"></i>
+                                <span class="text-sm font-medium">${(trend.popularity_score * 100).toFixed(0)}%</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-gray-600 text-sm mb-3">${trend.description}</p>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                <span>
+                                    <i class="fas fa-clock mr-1"></i>
+                                    ${formatDate(trend.discovered_at)}
+                                </span>
+                                ${trend.hashtags && trend.hashtags.length > 0 ? `
+                                    <span>
+                                        <i class="fas fa-hashtag mr-1"></i>
+                                        ${trend.hashtags.slice(0, 3).join(' ')}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="flex items-center space-x-2">
+                                <button onclick="createContentFromTrend('${trend.id}')" 
+                                        class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-xs">
+                                    <i class="fas fa-magic mr-1"></i>
+                                    Создать контент
+                                </button>
+                                
+                                <button onclick="viewTrendDetails('${trend.id}')" 
+                                        class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-xs">
+                                    <i class="fas fa-eye mr-1"></i>
+                                    Детали
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function getSourceColor(source) {
+        const colors = {
+            'youtube': 'red',
+            'google_trends': 'blue',
+            'rss': 'green',
+            'tiktok': 'black'
+        };
+        return colors[source] || 'gray';
+    }
+    
+    function getSourceName(source) {
+        const names = {
+            'youtube': 'YouTube',
+            'google_trends': 'Google',
+            'rss': 'RSS',
+            'tiktok': 'TikTok'
+        };
+        return names[source] || source;
+    }
+    
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+    }
+    
+    async function createContentFromTrend(trendId) {
+        try {
+            const response = await apiRequest(`/api/trends/${trendId}/create_content`, 'POST');
+            
+            if (response && response.success) {
+                showNotification(response.message, 'success');
+            } else {
+                showNotification('Ошибка при создании контента', 'error');
+            }
+        } catch (error) {
+            showNotification('Произошла ошибка', 'error');
+        }
+    }
+    
+    function filterTrends() {
+        const filter = document.getElementById('trendsFilter').value;
+        const items = document.querySelectorAll('.trend-item');
+        
+        items.forEach(item => {
+            const source = item.dataset.source;
+            if (!filter || source === filter) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    function clearTrends() {
+        if (confirm('Вы уверены, что хотите очистить все найденные тренды?')) {
+            document.getElementById('trendsContainer').innerHTML = `
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-search text-4xl mb-4"></i>
+                    <p>Тренды очищены. Запустите новый мониторинг.</p>
+                </div>
+            `;
+            updateStats();
+            showNotification('Тренды очищены', 'info');
+        }
+    }
+    
+    function updateStats() {
+        // Обновляем статистику (здесь будут реальные значения из API)
+        document.getElementById('trendsFound').textContent = document.querySelectorAll('.trend-item').length;
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ru-RU');
+    }
+    
+    // Автообновление трендов каждые 5 минут
+    setInterval(refreshTrends, 300000);
+    
+    // Загружаем тренды при загрузке страницы
+    refreshTrends();
+</script>
+{% endblock %}
