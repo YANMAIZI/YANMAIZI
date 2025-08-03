@@ -237,8 +237,9 @@ class VideoGenerator:
                         font_size=request.font_size,
                         color=request.text_color,
                         size=request.resolution,
-                        method='caption'
-                    ).set_duration(sentence_duration)
+                        method='caption',
+                        duration=sentence_duration
+                    )
                     
                     # Добавляем анимацию появления
                     text_clip = text_clip.fadein(0.5).fadeout(0.5)
