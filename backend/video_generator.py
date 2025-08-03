@@ -236,7 +236,6 @@ class VideoGenerator:
                         sentence,
                         fontsize=request.font_size,
                         color=request.text_color,
-                        font=self.default_font,
                         size=request.resolution,
                         method='caption'
                     ).set_duration(sentence_duration)
