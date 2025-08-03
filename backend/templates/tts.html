@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Генерация - EKOSYSTEMA_FULL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Навигация -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-robot text-blue-600 mr-2"></i>
+                            EKOSYSTEMA_FULL
+                        </h1>
+                    </div>
+                    <div class="ml-10 space-x-8">
+                        <a href="/" class="text-gray-500 hover:text-gray-700">Dashboard</a>
+                        <a href="/content" class="text-gray-500 hover:text-gray-700">Контент</a>
+                        <a href="/tasks" class="text-gray-500 hover:text-gray-700">Задачи</a>
+                        <a href="/trends" class="text-gray-500 hover:text-gray-700">Тренды</a>
+                        <a href="/tts" class="text-blue-600 font-medium">TTS</a>
+                        <a href="/analytics" class="text-gray-500 hover:text-gray-700">Аналитика</a>
+                        <a href="/settings" class="text-gray-500 hover:text-gray-700">Настройки</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8" x-data="ttsApp()">
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-microphone-alt text-purple-600 mr-3"></i>
+                TTS Генерация
+            </h1>
+            <p class="mt-2 text-gray-600">Преобразование текста в речь для создания аудиоконтента</p>
+        </div>
+
+        <!-- Информация о системе -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-cogs text-blue-500 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Доступные движки</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="systemInfo.available_engines ? systemInfo.available_engines.length : 0">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-language text-green-500 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Поддерживаемые языки</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="systemInfo.supported_languages ? systemInfo.supported_languages.length : 0">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-file-audio text-purple-500 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Форматы аудио</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="systemInfo.audio_formats ? systemInfo.audio_formats.join(', ') : 'WAV, MP3'">WAV, MP3</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Генерация TTS -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-plus-circle text-green-600 mr-2"></i>
+                        Новая TTS генерация
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <form @submit.prevent="generateTTS">
+                        <!-- Текст для озвучки -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Текст для озвучки</label>
+                            <textarea 
+                                x-model="ttsForm.text"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                rows="5"
+                                placeholder="Введите текст, который нужно озвучить..."
+                                required
+                            ></textarea>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Символов: <span x-text="ttsForm.text.length">0</span>
+                            </p>
+                        </div>
+
+                        <!-- Настройки -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <!-- TTS движок -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">TTS движок</label>
+                                <select 
+                                    x-model="ttsForm.engine"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                >
+                                    <template x-for="engine in systemInfo.available_engines" :key="engine">
+                                        <option :value="engine" x-text="getEngineDisplayName(engine)"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Голос -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Голос</label>
+                                <select 
+                                    x-model="ttsForm.voice"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                >
+                                    <option value="female">Женский</option>
+                                    <option value="male">Мужской</option>
+                                </select>
+                            </div>
+
+                            <!-- Язык -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Язык</label>
+                                <select 
+                                    x-model="ttsForm.language"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                >
+                                    <option value="ru">Русский</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+
+                            <!-- Скорость -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Скорость: <span x-text="ttsForm.speed">1.0</span>x
+                                </label>
+                                <input 
+                                    type="range" 
+                                    x-model="ttsForm.speed"
+                                    min="0.5" 
+                                    max="2.0" 
+                                    step="0.1"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Кнопка генерации -->
+                        <button 
+                            type="submit"
+                            :disabled="loading || !ttsForm.text.trim()"
+                            :class="{
+                                'bg-purple-600 hover:bg-purple-700': !loading && ttsForm.text.trim(),
+                                'bg-gray-400 cursor-not-allowed': loading || !ttsForm.text.trim()
+                            }"
+                            class="w-full text-white py-2 px-4 rounded-md font-medium transition-colors duration-200"
+                        >
+                            <span x-show="!loading">
+                                <i class="fas fa-microphone mr-2"></i>
+                                Генерировать аудио
+                            </span>
+                            <span x-show="loading">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                Генерация...
+                            </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Последние задачи TTS -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-history text-blue-600 mr-2"></i>
+                        Последние TTS задачи
+                    </h2>
+                    <button 
+                        @click="loadTasks"
+                        class="text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                        <i class="fas fa-refresh mr-1"></i>
+                        Обновить
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div x-show="tasks.length === 0" class="text-center text-gray-500 py-8">
+                        <i class="fas fa-inbox text-4xl mb-4"></i>
+                        <p>Пока нет TTS задач</p>
+                    </div>
+
+                    <div x-show="tasks.length > 0" class="space-y-4">
+                        <template x-for="task in tasks" :key="task.id">
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-900" x-text="task.id.substring(0, 8) + '...'"></span>
+                                    <span 
+                                        :class="{
+                                            'bg-green-100 text-green-800': task.status === 'completed',
+                                            'bg-blue-100 text-blue-800': task.status === 'running',
+                                            'bg-red-100 text-red-800': task.status === 'failed',
+                                            'bg-gray-100 text-gray-800': task.status === 'pending'
+                                        }"
+                                        class="px-2 py-1 text-xs font-semibold rounded-full"
+                                        x-text="getStatusText(task.status)"
+                                    ></span>
+                                </div>
+                                
+                                <div class="text-sm text-gray-600 mb-2">
+                                    <p x-text="task.parameters?.text?.substring(0, 100) + (task.parameters?.text?.length > 100 ? '...' : '')"></p>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>Движок: <span x-text="getEngineDisplayName(task.parameters?.engine)"></span></span>
+                                    <span x-text="formatDate(task.created_at)"></span>
+                                </div>
+                                
+                                <!-- Прогресс-бар -->
+                                <div x-show="task.status === 'running'" class="mt-2">
+                                    <div class="bg-gray-200 rounded-full h-2">
+                                        <div 
+                                            class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                            :style="`width: ${task.progress || 0}%`"
+                                        ></div>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Прогресс: <span x-text="task.progress || 0">0</span>%</p>
+                                </div>
+
+                                <!-- Результат -->
+                                <div x-show="task.status === 'completed' && task.result" class="mt-2 p-2 bg-green-50 rounded">
+                                    <div class="text-xs text-green-700">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Аудиофайл создан
+                                        <span x-show="task.result?.file_size">
+                                            - <span x-text="formatFileSize(task.result.file_size)"></span>
+                                        </span>
+                                        <span x-show="task.result?.generation_time">
+                                            за <span x-text="task.result.generation_time.toFixed(2)">0</span>с
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Ошибка -->
+                                <div x-show="task.status === 'failed'" class="mt-2 p-2 bg-red-50 rounded">
+                                    <div class="text-xs text-red-700">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        <span x-text="task.error_message || 'Неизвестная ошибка'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Уведомления -->
+        <div 
+            x-show="notification.show"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform translate-y-2"
+            class="fixed bottom-4 right-4 z-50"
+        >
+            <div 
+                :class="{
+                    'bg-green-500': notification.type === 'success',
+                    'bg-red-500': notification.type === 'error',
+                    'bg-blue-500': notification.type === 'info'
+                }"
+                class="text-white px-6 py-4 rounded-lg shadow-lg flex items-center"
+            >
+                <i 
+                    :class="{
+                        'fas fa-check-circle': notification.type === 'success',
+                        'fas fa-exclamation-circle': notification.type === 'error',
+                        'fas fa-info-circle': notification.type === 'info'
+                    }"
+                    class="mr-2"
+                ></i>
+                <span x-text="notification.message"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function ttsApp() {
+            return {
+                // Состояние
+                loading: false,
+                systemInfo: {},
+                tasks: [],
+                
+                // Форма TTS генерации
+                ttsForm: {
+                    text: '',
+                    engine: 'gtts',
+                    voice: 'female',
+                    language: 'ru',
+                    speed: 1.0
+                },
+                
+                // Уведомления
+                notification: {
+                    show: false,
+                    type: 'info',
+                    message: ''
+                },
+                
+                // Инициализация
+                async init() {
+                    await this.loadSystemInfo();
+                    await this.loadTasks();
+                    
+                    // Автообновление задач каждые 5 секунд
+                    setInterval(() => {
+                        this.loadTasks();
+                    }, 5000);
+                },
+                
+                // Загрузка информации о системе
+                async loadSystemInfo() {
+                    try {
+                        const response = await fetch('/api/tts/info');
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.systemInfo = data.data;
+                            // Устанавливаем первый доступный движок
+                            if (this.systemInfo.available_engines.length > 0) {
+                                this.ttsForm.engine = this.systemInfo.available_engines[0];
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки системной информации:', error);
+                    }
+                },
+                
+                // Загрузка задач
+                async loadTasks() {
+                    try {
+                        const response = await fetch('/api/tasks');
+                        const tasks = await response.json();
+                        
+                        // Фильтруем только TTS задачи
+                        this.tasks = tasks
+                            .filter(task => task.type === 'tts_generation')
+                            .slice(0, 10); // Показываем только последние 10
+                    } catch (error) {
+                        console.error('Ошибка загрузки задач:', error);
+                    }
+                },
+                
+                // Генерация TTS
+                async generateTTS() {
+                    if (!this.ttsForm.text.trim()) {
+                        this.showNotification('error', 'Введите текст для озвучки');
+                        return;
+                    }
+                    
+                    this.loading = true;
+                    
+                    try {
+                        const response = await fetch('/api/tts/generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(this.ttsForm)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            this.showNotification('success', 'TTS генерация запущена! ID задачи: ' + result.task_id.substring(0, 8));
+                            
+                            // Очищаем форму
+                            this.ttsForm.text = '';
+                            
+                            // Обновляем список задач
+                            setTimeout(() => {
+                                this.loadTasks();
+                            }, 1000);
+                        } else {
+                            this.showNotification('error', 'Ошибка при запуске генерации');
+                        }
+                    } catch (error) {
+                        this.showNotification('error', 'Ошибка сети: ' + error.message);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                // Вспомогательные методы
+                getEngineDisplayName(engine) {
+                    const names = {
+                        'gtts': 'Google TTS',
+                        'pyttsx3': 'Локальный TTS',
+                        'coqui': 'Coqui TTS'
+                    };
+                    return names[engine] || engine;
+                },
+                
+                getStatusText(status) {
+                    const texts = {
+                        'pending': 'Ожидает',
+                        'running': 'Выполняется',
+                        'completed': 'Завершено',
+                        'failed': 'Ошибка'
+                    };
+                    return texts[status] || status;
+                },
+                
+                formatDate(dateString) {
+                    return new Date(dateString).toLocaleString('ru-RU');
+                },
+                
+                formatFileSize(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                },
+                
+                // Уведомления
+                showNotification(type, message) {
+                    this.notification = {
+                        show: true,
+                        type: type,
+                        message: message
+                    };
+                    
+                    setTimeout(() => {
+                        this.notification.show = false;
+                    }, 5000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
