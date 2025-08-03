@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EKOSYSTEMA_FULL Dashboard{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js для графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar-active {
+            @apply bg-blue-700 text-white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 gradient-bg text-white flex-shrink-0">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold">EKOSYSTEMA</h1>
+                <p class="text-sm opacity-75">Автоматизация контента</p>
+            </div>
+            
+            <nav class="mt-8">
+                <a href="{{ url_for('dashboard') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'dashboard' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-tachometer-alt mr-3"></i>
+                    Dashboard
+                </a>
+                
+                <a href="{{ url_for('content_management') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'content_management' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-magic mr-3"></i>
+                    Генерация контента
+                </a>
+                
+                <a href="{{ url_for('publishing_management') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'publishing_management' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-share-alt mr-3"></i>
+                    Публикация
+                </a>
+                
+                <a href="{{ url_for('tasks_management') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'tasks_management' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-tasks mr-3"></i>
+                    Задачи
+                </a>
+                
+                <a href="{{ url_for('analytics') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'analytics' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-chart-bar mr-3"></i>
+                    Аналитика
+                </a>
+                
+                <a href="{{ url_for('settings') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'settings' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-cog mr-3"></i>
+                    Настройки
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 w-64 p-6">
+                <div class="bg-blue-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium">Система</p>
+                            <p class="text-xs opacity-75">Статус: Активна</p>
+                        </div>
+                        <div class="h-3 w-3 bg-green-400 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Header -->
+            <header class="bg-white shadow-sm border-b px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-semibold text-gray-800">
+                        {% block header %}Dashboard{% endblock %}
+                    </h2>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2 text-sm text-gray-600">
+                            <i class="fas fa-clock"></i>
+                            <span id="current-time"></span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <div class="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-gray-600"></i>
+                            </div>
+                            <span class="text-sm font-medium">Администратор</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-300{% else %}bg-green-100 text-green-700 border border-green-300{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Обновление времени
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('ru-RU');
+            document.getElementById('current-time').textContent = timeString;
+        }
+        
+        setInterval(updateTime, 1000);
+        updateTime();
+        
+        // Общие функции для AJAX запросов
+        async function apiRequest(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                return await response.json();
+            } catch (error) {
+                console.error('API request failed:', error);
+                return null;
+            }
+        }
+        
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

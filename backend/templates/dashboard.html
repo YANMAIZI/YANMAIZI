@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - EKOSYSTEMA_FULL{% endblock %}
+
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Статистические карточки -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Всего контента</p>
+                <p class="text-3xl font-bold text-gray-900">{{ stats.total_content }}</p>
+            </div>
+            <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-file-video text-blue-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-green-600">
+                <i class="fas fa-arrow-up"></i>
+                +12% с прошлой недели
+            </span>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Задач в очереди</p>
+                <p class="text-3xl font-bold text-gray-900">{{ stats.pending_tasks }}</p>
+            </div>
+            <div class="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-clock text-yellow-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-gray-600">
+                Среднее время: 15 мин
+            </span>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Опубликовано сегодня</p>
+                <p class="text-3xl font-bold text-gray-900">{{ stats.published_today }}</p>
+            </div>
+            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-share text-green-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-green-600">
+                <i class="fas fa-check"></i>
+                Цель: 5 в день
+            </span>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Статус системы</p>
+                <p class="text-3xl font-bold text-green-600">{{ stats.system_status.upper() }}</p>
+            </div>
+            <div class="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-server text-purple-600 text-xl"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-sm text-gray-600">
+                Uptime: 24h 15m
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Быстрые действия</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="generateContent()" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                    <i class="fas fa-magic text-blue-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-gray-900">Генерировать контент</span>
+                </button>
+                
+                <button onclick="publishContent()" class="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                    <i class="fas fa-share-alt text-green-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-gray-900">Опубликовать</span>
+                </button>
+                
+                <button onclick="monitorTrends()" class="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                    <i class="fas fa-chart-line text-purple-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-gray-900">Мониторинг трендов</span>
+                </button>
+                
+                <button onclick="viewAnalytics()" class="flex flex-col items-center p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
+                    <i class="fas fa-chart-bar text-orange-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-gray-900">Аналитика</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Системная информация -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Система</h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">FastAPI Backend</span>
+                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Активен</span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">MongoDB</span>
+                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Подключена</span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">Celery Worker</span>
+                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Настройка</span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">Redis Queue</span>
+                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Настройка</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние задачи -->
+<div class="bg-white rounded-lg shadow">
+    <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Последние задачи</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Создано</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for task in recent_tasks %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ task.id }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {{ task.type }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 rounded-full text-xs {% if task.status == 'completed' %}bg-green-100 text-green-800{% elif task.status == 'pending' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ task.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {{ task.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                        {{ task.title }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function generateContent() {
+        const result = await apiRequest('/api/content/generate', 'POST', {
+            type: 'video',
+            topic: 'Telegram подарки'
+        });
+        
+        if (result && result.success) {
+            showNotification(result.message, 'success');
+        } else {
+            showNotification('Ошибка при генерации контента', 'error');
+        }
+    }
+    
+    async function publishContent() {
+        showNotification('Функция публикации в разработке', 'info');
+    }
+    
+    async function monitorTrends() {
+        const result = await apiRequest('/api/tasks/create', 'POST', {
+            type: 'trend_monitoring'
+        });
+        
+        if (result && result.success) {
+            showNotification('Запущен мониторинг трендов', 'success');
+        } else {
+            showNotification('Ошибка при запуске мониторинга', 'error');
+        }
+    }
+    
+    function viewAnalytics() {
+        window.location.href = '{{ url_for("analytics") }}';
+    }
+</script>
+{% endblock %}
