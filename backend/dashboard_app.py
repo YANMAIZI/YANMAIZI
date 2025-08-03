@@ -205,4 +205,8 @@ if __name__ == '__main__':
     templates_dir = ROOT_DIR / 'templates'
     templates_dir.mkdir(exist_ok=True)
     
+    # Создаем папки для генерируемых файлов
+    (ROOT_DIR / 'generated_videos').mkdir(exist_ok=True)
+    (ROOT_DIR / 'generated_audio').mkdir(exist_ok=True)
+    
     app.run(host='0.0.0.0', port=5000, debug=True)
