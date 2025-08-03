@@ -304,10 +304,6 @@ class VideoGenerator:
                 clips_with_transitions = []
                 for i, img_path in enumerate(image_paths):
                     img_clip = ImageClip(img_path, duration=duration_per_image)
-                    if i > 0:
-                        img_clip = img_clip.fadein(0.5)
-                    if i < len(image_paths) - 1:
-                        img_clip = img_clip.fadeout(0.5)
                     clips_with_transitions.append(img_clip)
                 
                 final_video = concatenate_videoclips(clips_with_transitions)
