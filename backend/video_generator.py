@@ -253,9 +253,7 @@ class VideoGenerator:
                     str(output_path),
                     fps=request.fps,
                     codec='libx264',
-                    audio_codec='aac',
-                    verbose=False,
-                    logger=None
+                    audio_codec='aac'
                 )
                 
                 return True, str(output_path), final_video.duration, None
