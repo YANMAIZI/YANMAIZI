@@ -53,6 +53,11 @@
                     Задачи
                 </a>
                 
+                <a href="{{ url_for('trends_monitoring') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'trends_monitoring' %}bg-blue-700{% endif %}">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    Тренды
+                </a>
+                
                 <a href="{{ url_for('analytics') }}" class="flex items-center px-6 py-3 hover:bg-blue-700 transition-colors {% if request.endpoint == 'analytics' %}bg-blue-700{% endif %}">
                     <i class="fas fa-chart-bar mr-3"></i>
                     Аналитика
