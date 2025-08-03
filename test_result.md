@@ -190,6 +190,18 @@ frontend:
         agent: "main"
         comment: "Созданы все HTML шаблоны: base.html, dashboard.html, content.html, tasks.html, publishing.html, analytics.html, settings.html. Интерфейс полностью функционален с Tailwind CSS"
 
+  - task: "Система мониторинга трендов"
+    implemented: true
+    working: true
+    file: "backend/trend_monitor.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Полностью реализована система мониторинга трендов: парсинг YouTube/Google/RSS, интеллектуальный анализ, автогенерация идей контента. Тест показал 30 найденных трендов и 20 идей контента. API endpoints работают, интерфейс trends.html создан"
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
