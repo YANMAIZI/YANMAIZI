@@ -202,17 +202,41 @@ frontend:
         agent: "main"
         comment: "Созданы все HTML шаблоны: base.html, dashboard.html, content.html, tasks.html, publishing.html, analytics.html, settings.html. Интерфейс полностью функционален с Tailwind CSS"
 
-  - task: "Система мониторинга трендов"
+  - task: "TTS система генерации речи"
     implemented: true
     working: true
-    file: "backend/trend_monitor.py"
+    file: "backend/tts_module.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
-        comment: "Полностью реализована система мониторинга трендов: парсинг YouTube/Google/RSS, интеллектуальный анализ, автогенерация идей контента. Тест показал 30 найденных трендов и 20 идей контента. API endpoints работают, интерфейс trends.html создан"
+        comment: "TTS модуль полностью реализован и протестирован. Поддерживает Google TTS, генерацию на русском/английском, интеграцию с задачами и контентом. Все API endpoints работают корректно."
+
+  - task: "TTS API endpoints"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Реализованы API endpoints: GET /api/tts/info, POST /api/tts/generate, POST /api/content/{id}/generate_tts. Все endpoint протестированы и работают быстро (<2с генерация)."
+
+  - task: "TTS Dashboard интерфейс"
+    implemented: true
+    working: true
+    file: "backend/templates/tts.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Создан красивый веб-интерфейс для TTS генерации с настройками движка, голоса, языка, скорости. Отслеживание задач в реальном времени."
 
 metadata:
   created_by: "main_agent"
