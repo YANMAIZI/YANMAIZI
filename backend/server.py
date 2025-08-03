@@ -512,6 +512,246 @@ async def update_settings(settings: SystemSettings):
         logging.error(f"Error updating settings: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при обновлении настроек")
 
+# ================== TTS ENDPOINTS ==================
+
+@api_router.get("/tts/info")
+async def get_tts_system_info():
+    """Получение информации о TTS системе"""
+    try:
+        info = await get_tts_info()
+        return {
+            "success": True,
+            "data": info
+        }
+    except Exception as e:
+        logging.error(f"Error getting TTS info: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при получении информации о TTS")
+
+@api_router.post("/tts/generate")
+async def generate_tts_audio(request_data: dict):
+    """Генерация TTS аудио"""
+    try:
+        text = request_data.get("text", "")
+        engine = request_data.get("engine", "gtts")
+        voice = request_data.get("voice", "female")
+        language = request_data.get("language", "ru")
+        speed = request_data.get("speed", 1.0)
+        
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="Текст не может быть пустым")
+        
+        # Создаём задачу TTS генерации
+        task = Task(
+            type=TaskType.TTS_GENERATION,
+            parameters={
+                "text": text,
+                "engine": engine,
+                "voice": voice,
+                "language": language,
+                "speed": speed
+            }
+        )
+        
+        await tasks_collection.insert_one(task.dict())
+        
+        # Запускаем TTS генерацию в фоне
+        import asyncio
+        asyncio.create_task(process_tts_generation(task.id, request_data))
+        
+        return {
+            "success": True,
+            "task_id": task.id,
+            "message": "TTS генерация запущена"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error starting TTS generation: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при запуске TTS генерации")
+
+async def process_tts_generation(task_id: str, request_data: dict):
+    """Фоновая обработка TTS генерации"""
+    try:
+        # Обновляем статус задачи
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {"status": TaskStatus.RUNNING, "progress": 10, "updated_at": datetime.utcnow()}}
+        )
+        
+        # Генерируем TTS
+        result = await generate_tts(
+            text=request_data.get("text", ""),
+            engine=request_data.get("engine", "gtts"),
+            voice=request_data.get("voice", "female"),
+            language=request_data.get("language", "ru"),
+            speed=request_data.get("speed", 1.0)
+        )
+        
+        if result.success:
+            # Обновляем задачу - успешно завершена
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.COMPLETED,
+                    "progress": 100,
+                    "completed_at": datetime.utcnow(),
+                    "result": {
+                        "audio_path": result.audio_path,
+                        "file_size": result.file_size,
+                        "duration": result.duration,
+                        "generation_time": result.generation_time,
+                        "engine_used": result.engine_used
+                    }
+                }}
+            )
+            
+            logger.info(f"TTS генерация успешно завершена: {result.audio_path}")
+        else:
+            # Обновляем задачу - ошибка
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.FAILED,
+                    "error_message": result.error,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            logger.error(f"Ошибка TTS генерации: {result.error}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка в фоновой задаче TTS генерации: {e}")
+        
+        # Обновляем статус задачи - ошибка
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {
+                "status": TaskStatus.FAILED,
+                "error_message": str(e),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
+@api_router.post("/content/{content_id}/generate_tts")
+async def generate_content_tts(content_id: str, tts_params: dict = None):
+    """Генерация TTS для существующего контента"""
+    try:
+        # Получаем контент
+        content = await content_collection.find_one({"id": content_id})
+        if not content:
+            raise HTTPException(status_code=404, detail="Контент не найден")
+        
+        # Проверяем наличие скрипта/текста
+        text_to_speech = content.get("script") or content.get("description") or content.get("title", "")
+        
+        if not text_to_speech.strip():
+            raise HTTPException(status_code=400, detail="У контента нет текста для озвучки")
+        
+        # Параметры TTS
+        if not tts_params:
+            tts_params = {}
+        
+        tts_data = {
+            "text": text_to_speech,
+            "engine": tts_params.get("engine", "gtts"),
+            "voice": tts_params.get("voice", "female"),
+            "language": tts_params.get("language", "ru"),
+            "speed": tts_params.get("speed", 1.0)
+        }
+        
+        # Создаём задачу TTS
+        task = Task(
+            type=TaskType.TTS_GENERATION,
+            parameters=dict(tts_data, content_id=content_id)
+        )
+        
+        await tasks_collection.insert_one(task.dict())
+        
+        # Запускаем TTS генерацию в фоне
+        import asyncio
+        asyncio.create_task(process_content_tts_generation(task.id, content_id, tts_data))
+        
+        return {
+            "success": True,
+            "task_id": task.id,
+            "content_id": content_id,
+            "message": "TTS генерация для контента запущена"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error generating TTS for content: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при генерации TTS для контента")
+
+async def process_content_tts_generation(task_id: str, content_id: str, tts_data: dict):
+    """Фоновая обработка TTS генерации для контента"""
+    try:
+        # Обновляем статус задачи
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {"status": TaskStatus.RUNNING, "progress": 20, "updated_at": datetime.utcnow()}}
+        )
+        
+        # Генерируем TTS
+        result = await generate_tts(**tts_data)
+        
+        if result.success:
+            # Обновляем контент с путем к аудиофайлу
+            await content_collection.update_one(
+                {"id": content_id},
+                {"$set": {
+                    "audio_path": result.audio_path,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            # Обновляем задачу - успешно завершена
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.COMPLETED,
+                    "progress": 100,
+                    "completed_at": datetime.utcnow(),
+                    "result": {
+                        "content_id": content_id,
+                        "audio_path": result.audio_path,
+                        "file_size": result.file_size,
+                        "duration": result.duration,
+                        "generation_time": result.generation_time,
+                        "engine_used": result.engine_used
+                    }
+                }}
+            )
+            
+            logger.info(f"TTS для контента {content_id} успешно создан: {result.audio_path}")
+        else:
+            # Обновляем задачу - ошибка
+            await tasks_collection.update_one(
+                {"id": task_id},
+                {"$set": {
+                    "status": TaskStatus.FAILED,
+                    "error_message": result.error,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            logger.error(f"Ошибка TTS генерации для контента {content_id}: {result.error}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка в фоновой задаче TTS генерации для контента: {e}")
+        
+        # Обновляем статус задачи - ошибка
+        await tasks_collection.update_one(
+            {"id": task_id},
+            {"$set": {
+                "status": TaskStatus.FAILED,
+                "error_message": str(e),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
 # Include the router in the main app
 app.include_router(api_router)
 
