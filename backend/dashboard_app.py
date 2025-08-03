@@ -142,6 +142,12 @@ def settings():
     """Настройки системы"""
     return render_template('settings.html')
 
+# Мониторинг трендов
+@app.route('/trends')
+def trends_monitoring():
+    """Мониторинг трендов"""
+    return render_template('trends.html')
+
 # API endpoints для AJAX запросов
 @app.route('/api/tasks/create', methods=['POST'])
 def create_task():
